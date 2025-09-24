@@ -10,6 +10,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <!-- 核心：引入 Chart.js 图表库 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 Chart.js 的 annotation 插件 ，用于绘制背景象限 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
     
     <style>
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px ); } to { opacity: 1; transform: translateY(0); } }
@@ -21,8 +23,8 @@
     <!-- 顶部导航栏 -->
     <header class="bg-white shadow-md">
         <div class="container mx-auto px-6 py-4 flex items-center space-x-3">
-            <i class="fa fa-braille text-primary text-2xl"></i>
-            <h1 class="text-xl md:text-2xl font-bold text-primary">AI任务优先级散点图分析器</h1>
+            <i class="fa fa-braille text-blue-600 text-2xl"></i>
+            <h1 class="text-xl md:text-2xl font-bold text-blue-600">AI任务优先级散点图分析器</h1>
         </div>
     </header>
 
@@ -35,30 +37,30 @@
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h2 class="text-lg font-semibold mb-4">输入您的待办事项</h2>
                     <p class="text-sm text-gray-500 mb-4">请将所有任务每行一个地输入，AI将为您生成优先级分布图。</p>
-                    <textarea id="tasksInput" rows="15" placeholder="例如：&#10;完成高数期末论文&#10;准备英语六级考试&#10;回复张教授的邮件&#10;取快递" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all resize-none"></textarea>
-                    <button id="generateChartBtn" class="mt-4 w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center">
+                    <textarea id="tasksInput" rows="15" placeholder="例如：&#10;完成高数期末论文&#10;准备英语六级考试&#10;回复张教授的邮件&#10;取快递" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all resize-none"></textarea>
+                    <button id="generateChartBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center">
                         <i class="fa fa-magic mr-2"></i>生成优先级散点图
                     </button>
                 </div>
             </div>
             
             <!-- 右侧：散点图展示区 -->
-            <div class="animate-fadeIn bg-white rounded-xl shadow-lg p-6" style="animation-delay: 0.2s;">
+            <div class="animate-fadeIn bg-white rounded-xl shadow-lg p-6 flex flex-col" style="animation-delay: 0.2s;">
                 <!-- 初始状态 -->
                 <div id="initialState" class="flex flex-col items-center justify-center text-center h-full text-gray-500">
-                    <i class="fa fa-pie-chart text-6xl text-primary opacity-20 mb-4"></i>
+                    <i class="fa fa-pie-chart text-6xl text-blue-600 opacity-20 mb-4"></i>
                     <h3 class="text-xl font-medium mb-2">等待您的任务</h3>
                     <p class="max-w-md">在左侧输入任务，AI将为您生成可视化的优先级分布图。</p>
                 </div>
 
                 <!-- 加载状态 -->
                 <div id="loadingState" class="hidden flex-col items-center justify-center h-full">
-                    <div class="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+                    <div class="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4"></div>
                     <p class="text-gray-600">AI正在进行定量分析...</p>
                 </div>
 
                 <!-- 图表容器 -->
-                <div id="chartContainer" class="hidden">
+                <div id="chartContainer" class="hidden flex-grow">
                     <canvas id="taskChart"></canvas>
                 </div>
             </div>
@@ -91,7 +93,6 @@
                 return;
             }
 
-            // 切换UI状态
             initialState.classList.add('hidden');
             chartContainer.classList.add('hidden');
             loadingState.classList.remove('hidden');
@@ -101,21 +102,18 @@
             const prompt = `
                 请从以下待办事项列表中，为每一个任务项评估其“重要性(importance)”和“紧急性(urgency)”。
                 请为这两个维度分别给出一个1到10之间的整数分值（1代表最低，10代表最高）。
-
                 请严格按照以下JSON格式返回结果，不要包含任何额外的解释或文字。
-                返回一个JSON对象，其中包含一个名为 "tasks" 的数组，数组中的每个对象都有 "task", "importance", 和 "urgency" 三个字段。
+                返回一个JSON对象，其中包含一个名为 "tasks" 的数组。
 
                 例如:
                 {
                   "tasks": [
                     { "task": "完成高数期末论文", "importance": 9, "urgency": 8 },
-                    { "task": "准备英语六级考试", "importance": 8, "urgency": 6 },
-                    { "task": "回复张教授的邮件", "importance": 7, "urgency": 9 },
-                    { "task": "取快递", "importance": 3, "urgency": 7 }
+                    { "task": "准备英语六级考试", "importance": 8, "urgency": 6 }
                   ]
                 }
 
-                待办事项列表如下 (每行一个任务):
+                待办事项列表如下:
                 ---
                 ${tasksText}
                 ---
@@ -161,7 +159,6 @@
         }
 
         function renderChart(tasks) {
-            // 销毁旧的图表实例（如果存在）
             if (myChart) {
                 myChart.destroy();
             }
@@ -175,15 +172,10 @@
 
             tasks.forEach(task => {
                 const point = { x: task.urgency, y: task.importance, label: task.task };
-                if (task.importance > 5 && task.urgency > 5) {
-                    datasets[0].data.push(point); // Q1
-                } else if (task.importance > 5 && task.urgency <= 5) {
-                    datasets[1].data.push(point); // Q2
-                } else if (task.importance <= 5 && task.urgency > 5) {
-                    datasets[2].data.push(point); // Q3
-                } else {
-                    datasets[3].data.push(point); // Q4
-                }
+                if (task.importance > 5 && task.urgency > 5) datasets[0].data.push(point);
+                else if (task.importance > 5 && task.urgency <= 5) datasets[1].data.push(point);
+                else if (task.importance <= 5 && task.urgency > 5) datasets[2].data.push(point);
+                else datasets[3].data.push(point);
             });
 
             const ctx = chartCanvas.getContext('2d');
@@ -195,14 +187,16 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            title: { display: true, text: '紧急性 (Urgency)' },
+                            title: { display: true, text: '紧急性 (Urgency)', font: { weight: 'bold' } },
                             min: 0,
                             max: 11,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         y: {
-                            title: { display: true, text: '重要性 (Importance)' },
+                            title: { display: true, text: '重要性 (Importance)', font: { weight: 'bold' } },
                             min: 0,
                             max: 11,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
                         }
                     },
                     plugins: {
@@ -210,38 +204,32 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    // 在提示框中显示任务的具体内容
                                     const point = context.raw;
-                                    return `${point.label}: (紧急性: ${point.x}, 重要性: ${point.y})`;
+                                    return `${point.label}: (紧急: ${point.x}, 重要: ${point.y})`;
                                 }
                             }
                         },
-                        // 在背景上绘制四个象限的辅助线和标签
                         annotation: {
                             annotations: {
-                                xLine: { type: 'line', xMin: 5.5, xMax: 5.5, borderColor: 'rgba(0,0,0,0.1)', borderWidth: 2 },
-                                yLine: { type: 'line', yMin: 5.5, yMax: 5.5, borderColor: 'rgba(0,0,0,0.1)', borderWidth: 2 },
-                                q1Label: { type: 'label', xValue: 8, yValue: 8, content: '立即做', font: { size: 16 }, color: 'rgba(239, 68, 68, 0.15)' },
-                                q2Label: { type: 'label', xValue: 3, yValue: 8, content: '计划做', font: { size: 16 }, color: 'rgba(59, 130, 246, 0.15)' },
-                                q3Label: { type: 'label', xValue: 8, yValue: 3, content: '授权做', font: { size: 16 }, color: 'rgba(245, 158, 11, 0.15)' },
-                                q4Label: { type: 'label', xValue: 3, yValue: 3, content: '减少做', font: { size: 16 }, color: 'rgba(107, 114, 128, 0.15)' }
+                                xLine: { type: 'line', xMin: 5.5, xMax: 5.5, borderColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderDash: [6, 6] },
+                                yLine: { type: 'line', yMin: 5.5, yMax: 5.5, borderColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderDash: [6, 6] },
+                                q1Label: { type: 'label', xValue: 8.25, yValue: 8.25, content: '立即做', font: { size: 18, weight: 'bold' }, color: 'rgba(239, 68, 68, 0.1)' },
+                                q2Label: { type: 'label', xValue: 2.75, yValue: 8.25, content: '计划做', font: { size: 18, weight: 'bold' }, color: 'rgba(59, 130, 246, 0.1)' },
+                                q3Label: { type: 'label', xValue: 8.25, yValue: 2.75, content: '授权做', font: { size: 18, weight: 'bold' }, color: 'rgba(245, 158, 11, 0.1)' },
+                                q4Label: { type: 'label', xValue: 2.75, yValue: 2.75, content: '减少做', font: { size: 18, weight: 'bold' }, color: 'rgba(107, 114, 128, 0.1)' }
                             }
                         }
                     },
                     elements: {
                         point: {
-                            radius: 6,
-                            hoverRadius: 8
+                            radius: 7,
+                            hoverRadius: 10,
+                            borderWidth: 1,
+                            hoverBorderWidth: 2
                         }
                     }
                 }
             });
-            
-            // 为了让 annotation 插件生效，需要额外引入它
-            // 但Chart.js v3后，annotation是独立插件，CDN直接引入可能不生效。
-            // 这里我们用一个简化的方法，在Chart.js v3+中，annotation需要手动注册。
-            // 为了简单起见，上面的annotation配置可能不会直接生效，但图表核心功能不受影响。
-            // 要完美实现背景象限，需要更复杂的项目配置，我们先把核心散点图跑起来。
 
             loadingState.classList.add('hidden');
             chartContainer.classList.remove('hidden');
