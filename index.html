@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日程计划AI分析助手（流式版 ）</title>
+    <title>AI时间管理四象限生成器</title>
     <!-- 引入Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入Font Awesome -->
@@ -16,12 +16,10 @@
                     colors: {
                         primary: '#3B82F6',
                         secondary: '#10B981',
-                        accent: '#8B5CF6',
-                        dark: '#1E293B',
-                        light: '#F8FAFC'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        q1_color: '#EF4444', // 紧急重要 - 红色
+                        q2_color: '#3B82F6', // 重要不紧急 - 蓝色
+                        q3_color: '#F59E0B', // 紧急不重要 - 橙色
+                        q4_color: '#6B7280', // 不重要不紧急 - 灰色
                     },
                 }
             }
@@ -31,129 +29,79 @@
     <style>
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px ); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
-        /* 用于光标闪烁效果 */
-        .blinking-cursor {
-            display: inline-block;
-            width: 2px;
-            height: 1em;
-            background-color: #333;
-            animation: blink 1s step-end infinite;
-            vertical-align: text-bottom;
-        }
-        @keyframes blink {
-            from, to { background-color: transparent; }
-            50% { background-color: #333; }
-        }
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen font-sans text-dark">
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
     <!-- 顶部导航栏 -->
-    <header class="bg-white fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-2 shadow-lg" id="navbar">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa fa-calendar-check-o text-primary text-2xl"></i>
-                <h1 class="text-xl md:text-2xl font-bold text-primary">日程计划AI分析助手</h1>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button id="historyBtn" class="flex items-center text-gray-600 hover:text-primary transition-colors duration-200">
-                    <i class="fa fa-history mr-1"></i><span class="hidden sm:inline">历史记录</span>
-                </button>
-            </div>
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4 flex items-center space-x-3">
+            <i class="fa fa-sitemap text-primary text-2xl"></i>
+            <h1 class="text-xl md:text-2xl font-bold text-primary">AI时间管理四象限生成器</h1>
         </div>
     </header>
 
     <!-- 主内容区 -->
-    <main class="container mx-auto px-4 pt-20 pb-16">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
-            <!-- 左侧：计划输入区 -->
-            <div class="lg:col-span-5 space-y-6 animate-fadeIn" style="animation-delay: 0.1s;">
-                <div class="bg-white rounded-xl shadow-lg p-5">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-gray-800">选择日期</h2>
-                        <button id="todayBtn" class="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full hover:bg-primary/20 transition-colors">今天</button>
-                    </div>
-                    <input type="date" id="scheduleDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all">
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-lg p-5">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">输入您的计划</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="scheduleTitle" class="block text-sm font-medium text-gray-700 mb-1">计划标题</label>
-                            <input type="text" id="scheduleTitle" placeholder="例如：周一工作计划" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all">
-                        </div>
-                        <div>
-                            <label for="scheduleContent" class="block text-sm font-medium text-gray-700 mb-1">详细计划内容</label>
-                            <textarea id="scheduleContent" rows="8" placeholder="请详细描述您的日程安排和计划..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all resize-none"></textarea>
-                            <div class="flex justify-end mt-1"><span id="charCount" class="text-xs text-gray-500">0/2000</span></div>
-                        </div>
-                        <button id="analyzeBtn" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center">
-                            <i class="fa fa-lightbulb-o mr-2"></i>让AI分析计划
-                        </button>
-                    </div>
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- 左侧：任务输入区 -->
+            <div class="animate-fadeIn">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">输入您的待办事项</h2>
+                    <p class="text-sm text-gray-500 mb-4">请将所有任务每行一个地输入下方文本框，AI将自动为您分类。</p>
+                    <textarea id="tasksInput" rows="15" placeholder="例如：&#10;完成高数作业&#10;准备英语六级考试&#10;取快递&#10;整理房间" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all resize-none"></textarea>
+                    <button id="generateMatrixBtn" class="mt-4 w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center">
+                        <i class="fa fa-magic mr-2"></i>一键生成四象限图
+                    </button>
                 </div>
             </div>
             
-            <!-- 右侧：分析结果区 -->
-            <div class="lg:col-span-7 animate-fadeIn" style="animation-delay: 0.3s;">
-                <div class="bg-white rounded-xl shadow-lg h-full p-5 flex flex-col">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">AI分析结果</h2>
-                    <div id="initialState" class="flex-1 flex flex-col items-center justify-center text-center p-6 text-gray-500">
-                        <div class="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4"><i class="fa fa-robot text-primary text-4xl"></i></div>
-                        <h3 class="text-xl font-medium mb-2">等待您的计划输入</h3>
-                        <p class="max-w-md">输入您的日程计划并点击"让AI分析计划"按钮，我将为您提供专业的建议</p>
+            <!-- 右侧：四象限图展示区 -->
+            <div class="animate-fadeIn" style="animation-delay: 0.2s;">
+                <!-- 初始状态 -->
+                <div id="initialState" class="flex flex-col items-center justify-center text-center p-6 text-gray-500 bg-white rounded-xl shadow-lg h-full">
+                    <div class="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                        <i class="fa fa-clock-o text-primary text-4xl"></i>
                     </div>
-                    <div id="loadingState" class="flex-1 flex flex-col items-center justify-center hidden">
-                        <div class="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
-                        <p class="text-gray-600">AI正在分析您的计划，请稍候...</p>
-                    </div>
-                    <div id="errorState" class="flex-1 flex flex-col items-center justify-center hidden">
-                        <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4"><i class="fa fa-exclamation-triangle text-red-500 text-2xl"></i></div>
-                        <h3 class="text-lg font-medium text-red-500 mb-2">连接失败</h3>
-                        <p class="text-gray-600 mb-4 text-center" id="errorMessage"></p>
-                        <button id="retryBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors">重试</button>
-                    </div>
-                    <div id="resultState" class="flex-1 overflow-y-auto hidden">
-                        <div class="border-b border-gray-200 pb-3 mb-4">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 id="resultTitle" class="text-xl font-semibold text-gray-800"></h3>
-                                    <p id="resultDate" class="text-sm text-gray-500 mt-1"></p>
-                                </div>
-                                <button id="saveResultBtn" class="text-primary hover:text-primary/80 flex items-center text-sm transition-colors opacity-50" disabled><i class="fa fa-save mr-1"></i>保存</button>
-                            </div>
+                    <h3 class="text-xl font-medium mb-2">等待您的任务</h3>
+                    <p class="max-w-md">在左侧输入您的待办事项，AI将为您生成优先级矩阵，帮助您更好地管理时间。</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="loadingState" class="hidden flex-col items-center justify-center text-center p-6 bg-white rounded-xl shadow-lg h-full">
+                    <div class="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+                    <p class="text-gray-600">AI正在分析您的任务优先级...</p>
+                </div>
+
+                <!-- 结果展示区 -->
+                <div id="matrixContainer" class="hidden">
+                    <div class="grid grid-cols-2 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden shadow-lg">
+                        <!-- 紧急且重要 -->
+                        <div class="bg-red-50 p-4">
+                            <h4 class="font-bold text-q1_color">紧急且重要 (立即做)</h4>
+                            <ul id="q1" class="mt-2 space-y-2 text-sm"></ul>
                         </div>
-                        <!-- AI分析结果将流式输出到这里 -->
-                        <div id="analysisOutput" class="prose max-w-none text-gray-700"></div>
+                        <!-- 重要但不紧急 -->
+                        <div class="bg-blue-50 p-4">
+                            <h4 class="font-bold text-q2_color">重要但不紧急 (计划做)</h4>
+                            <ul id="q2" class="mt-2 space-y-2 text-sm"></ul>
+                        </div>
+                        <!-- 紧急但不重要 -->
+                        <div class="bg-orange-50 p-4">
+                            <h4 class="font-bold text-q3_color">紧急但不重要 (授权做)</h4>
+                            <ul id="q3" class="mt-2 space-y-2 text-sm"></ul>
+                        </div>
+                        <!-- 不重要不紧急 -->
+                        <div class="bg-gray-100 p-4">
+                            <h4 class="font-bold text-q4_color">不重要不紧急 (减少做)</h4>
+                            <ul id="q4" class="mt-2 space-y-2 text-sm"></ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
-    
-    <!-- 历史记录模态框 (内容不变) -->
-    <div id="historyModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-fadeIn">
-            <div class="p-5 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">历史计划记录</h3>
-                <button id="closeHistoryBtn" class="text-gray-500 hover:text-gray-700 transition-colors"><i class="fa fa-times text-xl"></i></button>
-            </div>
-            <div id="historyList" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
-            <div class="p-4 border-t border-gray-200 flex justify-end">
-                <button id="clearHistoryBtn" class="text-red-500 hover:text-red-600 px-4 py-2 transition-colors text-sm"><i class="fa fa-trash mr-1"></i>清空历史</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 通知提示 (内容不变) -->
-    <div id="notification" class="fixed bottom-4 right-4 bg-dark text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 max-w-xs bg-blue-600 translate-y-20 opacity-0">
-        <i id="notificationIcon" class="fa fa-info-circle"></i><span id="notificationText"></span>
-    </div>
 
     <script>
         // === 全局配置 ===
@@ -162,93 +110,50 @@
         const KIMI_MODEL = "moonshot-v1-8k";
 
         // === DOM元素引用 ===
-        const scheduleDate = document.getElementById('scheduleDate' );
-        const scheduleTitle = document.getElementById('scheduleTitle');
-        const scheduleContent = document.getElementById('scheduleContent');
-        const charCount = document.getElementById('charCount');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const todayBtn = document.getElementById('todayBtn');
-        const retryBtn = document.getElementById('retryBtn');
-        const saveResultBtn = document.getElementById('saveResultBtn');
-        const errorMessage = document.getElementById('errorMessage');
+        const tasksInput = document.getElementById('tasksInput' );
+        const generateMatrixBtn = document.getElementById('generateMatrixBtn');
         const initialState = document.getElementById('initialState');
         const loadingState = document.getElementById('loadingState');
-        const errorState = document.getElementById('errorState');
-        const resultState = document.getElementById('resultState');
-        const resultTitle = document.getElementById('resultTitle');
-        const resultDate = document.getElementById('resultDate');
-        const analysisOutput = document.getElementById('analysisOutput'); // 新增: 用于流式输出的容器
-        const historyBtn = document.getElementById('historyBtn');
-        const historyModal = document.getElementById('historyModal');
-        const closeHistoryBtn = document.getElementById('closeHistoryBtn');
-        const historyList = document.getElementById('historyList');
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-        const notification = document.getElementById('notification');
-        const notificationIcon = document.getElementById('notificationIcon');
-        const notificationText = document.getElementById('notificationText');
-        const navbar = document.getElementById('navbar');
-        
-        let currentSchedule = null;
-        let fullAnalysisText = ""; // 用于保存完整的AI分析文本
-        
-        // === 函数定义 ===
+        const matrixContainer = document.getElementById('matrixContainer');
+        const q1 = document.getElementById('q1'); // 紧急且重要
+        const q2 = document.getElementById('q2'); // 重要但不紧急
+        const q3 = document.getElementById('q3'); // 紧急但不重要
+        const q4 = document.getElementById('q4'); // 不重要不紧急
 
-        function init() {
-            scheduleDate.value = new Date().toISOString().split('T')[0];
-            scheduleContent.addEventListener('input', updateCharCount);
-            todayBtn.addEventListener('click', () => { scheduleDate.value = new Date().toISOString().split('T')[0]; });
-            analyzeBtn.addEventListener('click', analyzeSchedule);
-            retryBtn.addEventListener('click', analyzeSchedule);
-            saveResultBtn.addEventListener('click', saveResult);
-            historyBtn.addEventListener('click', openHistoryModal);
-            closeHistoryBtn.addEventListener('click', closeHistoryModal);
-            clearHistoryBtn.addEventListener('click', clearHistory);
-            historyModal.addEventListener('click', (e) => { if (e.target === historyModal) closeHistoryModal(); });
-            window.addEventListener('scroll', handleScroll);
-            loadHistory();
-            showNotification('欢迎使用日程计划AI分析助手！', 'info');
-        }
-        
-        function updateCharCount() {
-            const count = scheduleContent.value.length;
-            charCount.textContent = `${count}/2000`;
-            charCount.classList.toggle('text-red-500', count > 2000);
-        }
-        
-        async function analyzeSchedule() {
-            if (!scheduleTitle.value.trim() || !scheduleContent.value.trim()) {
-                showNotification('请输入计划标题和内容', 'warning');
+        // === 事件绑定 ===
+        generateMatrixBtn.addEventListener('click', generateMatrix);
+
+        // === 函数定义 ===
+        async function generateMatrix() {
+            const tasksText = tasksInput.value.trim();
+            if (!tasksText) {
+                alert('请输入至少一个待办事项！');
                 return;
             }
-            
-            currentSchedule = {
-                id: Date.now(),
-                date: scheduleDate.value,
-                title: scheduleTitle.value.trim(),
-                content: scheduleContent.value.trim()
-            };
-            
-            // 切换到结果视图，但内容是空的
-            showResultState();
-            resultTitle.textContent = currentSchedule.title;
-            resultDate.textContent = formatDate(currentSchedule.date);
-            analysisOutput.innerHTML = '<span class="blinking-cursor"></span>'; // 显示一个闪烁的光标
-            fullAnalysisText = ""; // 重置完整文本
-            saveResultBtn.disabled = true; // 禁用保存按钮
-            saveResultBtn.classList.add('opacity-50');
+
+            // 切换UI状态
+            initialState.classList.add('hidden');
+            matrixContainer.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            generateMatrixBtn.disabled = true;
+            generateMatrixBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>正在生成...';
 
             const prompt = `
-                我需要你分析以下日程计划并提供建议。请严格按照以下四个部分组织你的回答，每个部分都以"### [标题]"开头，例如 "### 计划亮点"：
-                1. 计划亮点：指出计划中做得好的地方
-                2. 潜在改进点：指出计划中可能存在的问题或不足
-                3. 优化建议：提供具体的改进建议
-                4. 时间分配建议：对计划中的时间安排提供优化建议
-                
-                计划日期：${currentSchedule.date}
-                计划标题：${currentSchedule.title}
-                计划内容：${currentSchedule.content}
+                请从以下待办事项列表中，为每一个任务项评估其“重要性”和“紧急性”，并将其归类到以下四个类别之一：
+                1. important_urgent (紧急且重要)
+                2. important_not_urgent (重要但不紧急)
+                3. not_important_urgent (紧急但不重要)
+                4. not_important_not_urgent (不重要不紧急)
+
+                请严格按照以下JSON格式返回结果，不要包含任何额外的解释或文字。
+                返回一个JSON对象，其中包含一个名为 "tasks" 的数组，数组中的每个对象都有 "task" 和 "category" 两个字段。
+
+                待办事项列表如下 (每行一个任务):
+                ---
+                ${tasksText}
+                ---
             `;
-            
+
             try {
                 const response = await fetch(KIMI_API_ENDPOINT, {
                     method: 'POST',
@@ -258,133 +163,74 @@
                     },
                     body: JSON.stringify({
                         model: KIMI_MODEL,
-                        messages: [
-                            { role: 'system', content: '你是一位专业的日程计划分析助手，擅长分析各类计划并提供有价值的改进建议。' },
-                            { role: 'user', content: prompt }
-                        ],
-                        temperature: 0.7,
-                        stream: true // 开启流式输出
-                    })
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: 0.3,
+                    }),
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
+                    throw new Error(errorData.error?.message || 'AI服务请求失败');
                 }
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder('utf-8');
+                const data = await response.json();
+                const aiResponseText = data.choices[0]?.message?.content;
                 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        break; // 数据流结束
-                    }
-                    
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n\n');
-                    
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const jsonStr = line.substring(6);
-                            if (jsonStr === '[DONE]') {
-                                break;
-                            }
-                            try {
-                                const parsed = JSON.parse(jsonStr);
-                                const content = parsed.choices[0]?.delta?.content || '';
-                                if (content) {
-                                    fullAnalysisText += content;
-                                    // 将换行符替换为  
-以在HTML中正确显示
-                                    analysisOutput.innerHTML = fullAnalysisText.replace(/\n/g, '  
-') + '<span class="blinking-cursor"></span>';
-                                    // 自动滚动到底部
-                                    resultState.scrollTop = resultState.scrollHeight;
-                                }
-                            } catch (e) {
-                                console.error("JSON parsing error:", e);
-                            }
-                        }
-                    }
+                // 尝试从AI返回的文本中提取出纯净的JSON字符串
+                const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) throw new Error('AI未返回有效的JSON格式');
+
+                const result = JSON.parse(jsonMatch[0]);
+                if (result && result.tasks) {
+                    renderMatrix(result.tasks);
+                } else {
+                    throw new Error('AI返回的数据格式不正确');
                 }
 
             } catch (error) {
-                console.error('分析失败:', error);
-                errorMessage.textContent = error.message || '无法连接到AI服务，请检查网络或API设置';
-                showErrorState();
+                console.error('生成矩阵失败:', error);
+                alert(`生成失败: ${error.message}`);
+                // 失败后恢复初始状态
+                loadingState.classList.add('hidden');
+                initialState.classList.remove('hidden');
             } finally {
-                // 流式输出结束后
-                analysisOutput.innerHTML = fullAnalysisText.replace(/\n/g, '  
-'); // 移除光标
-                saveResultBtn.disabled = false; // 启用保存按钮
-                saveResultBtn.classList.remove('opacity-50');
-                currentSchedule.analysis = fullAnalysisText; // 保存完整结果用于历史记录
+                // 恢复按钮状态
+                generateMatrixBtn.disabled = false;
+                generateMatrixBtn.innerHTML = '<i class="fa fa-magic mr-2"></i>一键生成四象限图';
             }
         }
-        
-        // 保存和历史记录功能基本不变，但需要适配新的数据结构
-        function saveResult() {
-            if (!currentSchedule?.analysis) return;
-            let history = JSON.parse(localStorage.getItem('scheduleHistory') || '[]');
-            const existingIndex = history.findIndex(item => item.id === currentSchedule.id);
-            if (existingIndex >= 0) {
-                history[existingIndex] = currentSchedule;
-            } else {
-                history.unshift(currentSchedule);
-                if (history.length > 50) history = history.slice(0, 50);
-            }
-            localStorage.setItem('scheduleHistory', JSON.stringify(history));
-            loadHistory();
-            showNotification('计划已保存到历史记录', 'success');
-        }
-        
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('scheduleHistory') || '[]');
-            historyList.innerHTML = '';
-            if (history.length === 0) {
-                historyList.innerHTML = `<div class="text-center text-gray-500 py-10"><i class="fa fa-folder-open-o text-4xl mb-3 opacity-30"></i><p>暂无历史记录</p></div>`;
-                return;
-            }
-            history.forEach(item => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer';
-                historyItem.innerHTML = `<div class="flex justify-between items-start"><h4 class="font-medium text-gray-800">${item.title}</h4><span class="text-xs text-gray-500">${formatDate(item.date)}</span></div><p class="text-sm text-gray-600 mt-1">${item.content.substring(0, 100)}${item.content.length > 100 ? '...' : ''}</p>`;
-                historyItem.addEventListener('click', () => {
-                    currentSchedule = item;
-                    // 点击历史记录时，不再流式输出，而是直接显示完整内容
-                    showResultState();
-                    resultTitle.textContent = item.title;
-                    resultDate.textContent = formatDate(item.date);
-                    analysisOutput.innerHTML = item.analysis.replace(/\n/g, '  
-');
-                    saveResultBtn.disabled = false;
-                    saveResultBtn.classList.remove('opacity-50');
-                    
-                    scheduleDate.value = item.date;
-                    scheduleTitle.value = item.title;
-                    scheduleContent.value = item.content;
-                    closeHistoryModal();
-                });
-                historyList.appendChild(historyItem);
-            });
-        }
-        
-        // 其他辅助函数保持不变
-        function clearHistory() { if (confirm('确定要清空所有历史记录吗？')) { localStorage.removeItem('scheduleHistory'); loadHistory(); showNotification('历史记录已清空', 'info'); } }
-        function showNotification(message, type = 'info') { notificationText.textContent = message; const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' }; const colors = { success: 'bg-green-600', error: 'bg-red-600', warning: 'bg-amber-600', info: 'bg-blue-600' }; notification.className = notification.className.replace(/bg-\w+-\d+/g, ''); notification.classList.add(colors[type]); notificationIcon.className = `fa ${icons[type]}`; notification.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => notification.classList.add('translate-y-20', 'opacity-0'), 3000); }
-        function formatDate(dateString) { return new Date(dateString).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }); }
-        function switchState(visibleState) { [initialState, loadingState, errorState, resultState].forEach(state => { state.classList.toggle('hidden', state !== visibleState); }); }
-        function showInitialState() { switchState(initialState); }
-        function showLoadingState() { switchState(loadingState); }
-        function showErrorState() { switchState(errorState); }
-        function showResultState() { switchState(resultState); }
-        function openHistoryModal() { historyModal.classList.remove('hidden'); historyModal.classList.add('flex'); document.body.style.overflow = 'hidden'; }
-        function closeHistoryModal() { historyModal.classList.add('hidden'); historyModal.classList.remove('flex'); document.body.style.overflow = ''; }
-        function handleScroll() { navbar.classList.toggle('py-2', window.scrollY > 10); navbar.classList.toggle('shadow-lg', window.scrollY > 10); navbar.classList.toggle('py-3', window.scrollY <= 10); navbar.classList.toggle('shadow-md', window.scrollY <= 10); }
 
-        // === 初始化页面 ===
-        document.addEventListener('DOMContentLoaded', init);
+        function renderMatrix(tasks) {
+            // 清空旧内容
+            q1.innerHTML = '';
+            q2.innerHTML = '';
+            q3.innerHTML = '';
+            q4.innerHTML = '';
+
+            tasks.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.task;
+                li.className = 'bg-white p-2 rounded shadow-sm';
+
+                switch (item.category) {
+                    case 'important_urgent': q1.appendChild(li); break;
+                    case 'important_not_urgent': q2.appendChild(li); break;
+                    case 'not_important_urgent': q3.appendChild(li); break;
+                    case 'not_important_not_urgent': q4.appendChild(li); break;
+                }
+            });
+
+            // 为没有任务的象限添加提示
+            [q1, q2, q3, q4].forEach(q => {
+                if (q.children.length === 0) {
+                    q.innerHTML = '<li class="text-gray-400 italic p-2">暂无任务</li>';
+                }
+            });
+
+            // 切换UI状态
+            loadingState.classList.add('hidden');
+            matrixContainer.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
