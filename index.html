@@ -3,13 +3,12 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日程计划AI分析助手（Kimi版 ）</title>
+    <title>日程计划AI分析助手（流式版 ）</title>
     <!-- 引入Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
-    <!-- 配置Tailwind主题 -->
     <script>
         tailwind.config = {
             theme: {
@@ -30,18 +29,25 @@
     </script>
     
     <style>
-        /* 基础动画定义 */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px ); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px ); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
-        
-        /* 滚动条美化 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+        /* 用于光标闪烁效果 */
+        .blinking-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background-color: #333;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+        @keyframes blink {
+            from, to { background-color: transparent; }
+            50% { background-color: #333; }
+        }
     </style>
 </head>
 
@@ -119,34 +125,18 @@
                                     <h3 id="resultTitle" class="text-xl font-semibold text-gray-800"></h3>
                                     <p id="resultDate" class="text-sm text-gray-500 mt-1"></p>
                                 </div>
-                                <button id="saveResultBtn" class="text-primary hover:text-primary/80 flex items-center text-sm transition-colors"><i class="fa fa-save mr-1"></i>保存</button>
+                                <button id="saveResultBtn" class="text-primary hover:text-primary/80 flex items-center text-sm transition-colors opacity-50" disabled><i class="fa fa-save mr-1"></i>保存</button>
                             </div>
                         </div>
-                        <div class="space-y-6">
-                            <div>
-                                <h4 class="text-base font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-check-circle text-secondary mr-2"></i>计划亮点</h4>
-                                <div id="strengthsSection" class="pl-6 border-l-2 border-secondary/30 text-gray-700"></div>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-exclamation-circle text-amber-500 mr-2"></i>潜在改进点</h4>
-                                <div id="improvementsSection" class="pl-6 border-l-2 border-amber-200 text-gray-700"></div>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-lightbulb-o text-accent mr-2"></i>优化建议</h4>
-                                <div id="suggestionsSection" class="pl-6 border-l-2 border-accent/30 text-gray-700"></div>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-clock-o text-primary mr-2"></i>时间分配建议</h4>
-                                <div id="timingSection" class="pl-6 border-l-2 border-primary/30 text-gray-700"></div>
-                            </div>
-                        </div>
+                        <!-- AI分析结果将流式输出到这里 -->
+                        <div id="analysisOutput" class="prose max-w-none text-gray-700"></div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
     
-    <!-- 历史记录模态框 -->
+    <!-- 历史记录模态框 (内容不变) -->
     <div id="historyModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-fadeIn">
             <div class="p-5 border-b border-gray-200 flex justify-between items-center">
@@ -160,7 +150,7 @@
         </div>
     </div>
     
-    <!-- 通知提示 -->
+    <!-- 通知提示 (内容不变) -->
     <div id="notification" class="fixed bottom-4 right-4 bg-dark text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 max-w-xs bg-blue-600 translate-y-20 opacity-0">
         <i id="notificationIcon" class="fa fa-info-circle"></i><span id="notificationText"></span>
     </div>
@@ -187,10 +177,7 @@
         const resultState = document.getElementById('resultState');
         const resultTitle = document.getElementById('resultTitle');
         const resultDate = document.getElementById('resultDate');
-        const strengthsSection = document.getElementById('strengthsSection');
-        const improvementsSection = document.getElementById('improvementsSection');
-        const suggestionsSection = document.getElementById('suggestionsSection');
-        const timingSection = document.getElementById('timingSection');
+        const analysisOutput = document.getElementById('analysisOutput'); // 新增: 用于流式输出的容器
         const historyBtn = document.getElementById('historyBtn');
         const historyModal = document.getElementById('historyModal');
         const closeHistoryBtn = document.getElementById('closeHistoryBtn');
@@ -202,6 +189,7 @@
         const navbar = document.getElementById('navbar');
         
         let currentSchedule = null;
+        let fullAnalysisText = ""; // 用于保存完整的AI分析文本
         
         // === 函数定义 ===
 
@@ -240,8 +228,15 @@
                 content: scheduleContent.value.trim()
             };
             
-            showLoadingState();
-            
+            // 切换到结果视图，但内容是空的
+            showResultState();
+            resultTitle.textContent = currentSchedule.title;
+            resultDate.textContent = formatDate(currentSchedule.date);
+            analysisOutput.innerHTML = '<span class="blinking-cursor"></span>'; // 显示一个闪烁的光标
+            fullAnalysisText = ""; // 重置完整文本
+            saveResultBtn.disabled = true; // 禁用保存按钮
+            saveResultBtn.classList.add('opacity-50');
+
             const prompt = `
                 我需要你分析以下日程计划并提供建议。请严格按照以下四个部分组织你的回答，每个部分都以"### [标题]"开头，例如 "### 计划亮点"：
                 1. 计划亮点：指出计划中做得好的地方
@@ -268,6 +263,7 @@
                             { role: 'user', content: prompt }
                         ],
                         temperature: 0.7,
+                        stream: true // 开启流式输出
                     })
                 });
 
@@ -276,46 +272,58 @@
                     throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
                 }
 
-                const data = await response.json();
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
                 
-                if (data.choices?.[0]?.message?.content) {
-                    currentSchedule.analysis = data.choices[0].message.content;
-                    displayAnalysisResult(currentSchedule);
-                } else {
-                    throw new Error('未收到有效的AI响应');
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        break; // 数据流结束
+                    }
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.substring(6);
+                            if (jsonStr === '[DONE]') {
+                                break;
+                            }
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                const content = parsed.choices[0]?.delta?.content || '';
+                                if (content) {
+                                    fullAnalysisText += content;
+                                    // 将换行符替换为  
+以在HTML中正确显示
+                                    analysisOutput.innerHTML = fullAnalysisText.replace(/\n/g, '  
+') + '<span class="blinking-cursor"></span>';
+                                    // 自动滚动到底部
+                                    resultState.scrollTop = resultState.scrollHeight;
+                                }
+                            } catch (e) {
+                                console.error("JSON parsing error:", e);
+                            }
+                        }
+                    }
                 }
+
             } catch (error) {
                 console.error('分析失败:', error);
                 errorMessage.textContent = error.message || '无法连接到AI服务，请检查网络或API设置';
                 showErrorState();
+            } finally {
+                // 流式输出结束后
+                analysisOutput.innerHTML = fullAnalysisText.replace(/\n/g, '  
+'); // 移除光标
+                saveResultBtn.disabled = false; // 启用保存按钮
+                saveResultBtn.classList.remove('opacity-50');
+                currentSchedule.analysis = fullAnalysisText; // 保存完整结果用于历史记录
             }
         }
         
-        function displayAnalysisResult(schedule) {
-            resultTitle.textContent = schedule.title;
-            resultDate.textContent = formatDate(schedule.date);
-            
-            const analysis = schedule.analysis;
-            const parseSection = (title) => {
-                const regex = new RegExp(`### ${title}[\\s\\S]*?(?=(###|$))`, 'i');
-                const match = analysis.match(regex);
-                return match ? match[0].replace(new RegExp(`### ${title}\\s*\\n?`, 'i'), '').trim() : '无相关内容';
-            };
-
-            strengthsSection.innerHTML = textToHtmlList(parseSection('计划亮点'));
-            improvementsSection.innerHTML = textToHtmlList(parseSection('潜在改进点'));
-            suggestionsSection.innerHTML = textToHtmlList(parseSection('优化建议'));
-            timingSection.innerHTML = textToHtmlList(parseSection('时间分配建议'));
-            
-            showResultState();
-        }
-        
-        function textToHtmlList(text) {
-            if (!text) return '<p>无相关内容</p>';
-            const items = text.replace(/\*\*/g, '').split('\n').map(item => item.trim()).filter(item => item);
-            return items.length > 0 ? `<ul class="space-y-2">${items.map(item => `<li class="relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-current">${item.replace(/^[-*]\s*/, '')}</li>`).join('')}</ul>` : `<p>${text}</p>`;
-        }
-        
+        // 保存和历史记录功能基本不变，但需要适配新的数据结构
         function saveResult() {
             if (!currentSchedule?.analysis) return;
             let history = JSON.parse(localStorage.getItem('scheduleHistory') || '[]');
@@ -344,7 +352,15 @@
                 historyItem.innerHTML = `<div class="flex justify-between items-start"><h4 class="font-medium text-gray-800">${item.title}</h4><span class="text-xs text-gray-500">${formatDate(item.date)}</span></div><p class="text-sm text-gray-600 mt-1">${item.content.substring(0, 100)}${item.content.length > 100 ? '...' : ''}</p>`;
                 historyItem.addEventListener('click', () => {
                     currentSchedule = item;
-                    displayAnalysisResult(item);
+                    // 点击历史记录时，不再流式输出，而是直接显示完整内容
+                    showResultState();
+                    resultTitle.textContent = item.title;
+                    resultDate.textContent = formatDate(item.date);
+                    analysisOutput.innerHTML = item.analysis.replace(/\n/g, '  
+');
+                    saveResultBtn.disabled = false;
+                    saveResultBtn.classList.remove('opacity-50');
+                    
                     scheduleDate.value = item.date;
                     scheduleTitle.value = item.title;
                     scheduleContent.value = item.content;
@@ -354,48 +370,18 @@
             });
         }
         
-        function clearHistory() {
-            if (confirm('确定要清空所有历史记录吗？')) {
-                localStorage.removeItem('scheduleHistory');
-                loadHistory();
-                showNotification('历史记录已清空', 'info');
-            }
-        }
-        
-        function showNotification(message, type = 'info') {
-            notificationText.textContent = message;
-            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-            const colors = { success: 'bg-green-600', error: 'bg-red-600', warning: 'bg-amber-600', info: 'bg-blue-600' };
-            notification.className = notification.className.replace(/bg-\w+-\d+/g, '');
-            notification.classList.add(colors[type]);
-            notificationIcon.className = `fa ${icons[type]}`;
-            notification.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => notification.classList.add('translate-y-20', 'opacity-0'), 3000);
-        }
-        
-        function formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-        }
-        
-        function switchState(visibleState) {
-            [initialState, loadingState, errorState, resultState].forEach(state => {
-                state.classList.toggle('hidden', state !== visibleState);
-            });
-        }
+        // 其他辅助函数保持不变
+        function clearHistory() { if (confirm('确定要清空所有历史记录吗？')) { localStorage.removeItem('scheduleHistory'); loadHistory(); showNotification('历史记录已清空', 'info'); } }
+        function showNotification(message, type = 'info') { notificationText.textContent = message; const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' }; const colors = { success: 'bg-green-600', error: 'bg-red-600', warning: 'bg-amber-600', info: 'bg-blue-600' }; notification.className = notification.className.replace(/bg-\w+-\d+/g, ''); notification.classList.add(colors[type]); notificationIcon.className = `fa ${icons[type]}`; notification.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => notification.classList.add('translate-y-20', 'opacity-0'), 3000); }
+        function formatDate(dateString) { return new Date(dateString).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }); }
+        function switchState(visibleState) { [initialState, loadingState, errorState, resultState].forEach(state => { state.classList.toggle('hidden', state !== visibleState); }); }
         function showInitialState() { switchState(initialState); }
         function showLoadingState() { switchState(loadingState); }
         function showErrorState() { switchState(errorState); }
         function showResultState() { switchState(resultState); }
-        
         function openHistoryModal() { historyModal.classList.remove('hidden'); historyModal.classList.add('flex'); document.body.style.overflow = 'hidden'; }
         function closeHistoryModal() { historyModal.classList.add('hidden'); historyModal.classList.remove('flex'); document.body.style.overflow = ''; }
-        
-        function handleScroll() {
-            navbar.classList.toggle('py-2', window.scrollY > 10);
-            navbar.classList.toggle('shadow-lg', window.scrollY > 10);
-            navbar.classList.toggle('py-3', window.scrollY <= 10);
-            navbar.classList.toggle('shadow-md', window.scrollY <= 10);
-        }
+        function handleScroll() { navbar.classList.toggle('py-2', window.scrollY > 10); navbar.classList.toggle('shadow-lg', window.scrollY > 10); navbar.classList.toggle('py-3', window.scrollY <= 10); navbar.classList.toggle('shadow-md', window.scrollY <= 10); }
 
         // === 初始化页面 ===
         document.addEventListener('DOMContentLoaded', init);
